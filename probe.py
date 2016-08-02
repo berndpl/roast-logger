@@ -22,116 +22,128 @@ from Phidgets.Devices.TemperatureSensor import TemperatureSensor, ThermocoupleTy
 from time import sleep
 from Phidgets.Phidget import PhidgetLogLevel
 
-log = Logger()
+class Probe:
 
-#Create an temperaturesensor object
-try:
-    temperatureSensor = TemperatureSensor()
-except RuntimeError as e:
-    print("Runtime Exception: %s" % e.details)
-    print("Exiting....")
-    exit(1)
+    logger = Logger()
 
-#Information Display Function
-def DisplayDeviceInfo():
-    inputCount = temperatureSensor.getTemperatureInputCount()
-    print("|------------|----------------------------------|--------------|------------|")
-    print("|- Attached -|-              Type              -|- Serial No. -|-  Version -|")
-    print("|------------|----------------------------------|--------------|------------|")
-    print("|- %8s -|- %30s -|- %10d -|- %8d -|" % (temperatureSensor.isAttached(), temperatureSensor.getDeviceName(), temperatureSensor.getSerialNum(), temperatureSensor.getDeviceVersion()))
-    print("|------------|----------------------------------|--------------|------------|")
-    print("Number of Temperature Inputs: %i" % (inputCount))
-    for i in range(inputCount):
-        print("Input %i Sensitivity: %f" % (i, temperatureSensor.getTemperatureChangeTrigger(i)))
+    def __init__(self, **kwargs):
+        # log = Logger()
+        self.start_measuring()
 
-#Event Handler Callback Functions
-def TemperatureSensorAttached(e):
-    attached = e.device
-    print("TemperatureSensor %i Attached!" % (attached.getSerialNum()))
+    def start_measuring(self):
+    #Create an temperaturesensor object
+        try:
+            temperatureSensor = TemperatureSensor()
+        except RuntimeError as e:
+            print("Runtime Exception: %s" % e.details)
+            print("Exiting....")
+            exit(1)
 
-def TemperatureSensorDetached(e):
-    detached = e.device
-    print("TemperatureSensor %i Detached!" % (detached.getSerialNum()))
+        #Information Display Function
+        def DisplayDeviceInfo():
+            inputCount = temperatureSensor.getTemperatureInputCount()
+            print("|------------|----------------------------------|--------------|------------|")
+            print("|- Attached -|-              Type              -|- Serial No. -|-  Version -|")
+            print("|------------|----------------------------------|--------------|------------|")
+            print("|- %8s -|- %30s -|- %10d -|- %8d -|" % (temperatureSensor.isAttached(), temperatureSensor.getDeviceName(), temperatureSensor.getSerialNum(), temperatureSensor.getDeviceVersion()))
+            print("|------------|----------------------------------|--------------|------------|")
+            print("Number of Temperature Inputs: %i" % (inputCount))
+            for i in range(inputCount):
+                print("Input %i Sensitivity: %f" % (i, temperatureSensor.getTemperatureChangeTrigger(i)))
 
-def TemperatureSensorError(e):
-    try:
-        source = e.device
-        if source.isAttached():
-            print("TemperatureSensor %i: Phidget Error %i: %s" % (source.getSerialNum(), e.eCode, e.description))
-    except PhidgetException as e:
-        print("Phidget Exception %i: %s" % (e.code, e.details))
+        #Event Handler Callback Functions
+        def TemperatureSensorAttached(e):
+            attached = e.device
+            print("TemperatureSensor %i Attached!" % (attached.getSerialNum()))
 
-def TemperatureSensorTemperatureChanged(e):
-    try:
-        ambient = temperatureSensor.getAmbientTemperature()
-    except PhidgetException as e:
-        print("Phidget Exception %i: %s" % (e.code, e.details))
-        ambient = 0.00
+        def TemperatureSensorDetached(e):
+            detached = e.device
+            print("TemperatureSensor %i Detached!" % (detached.getSerialNum()))
 
-    source = e.device
-    #print("TemperatureSensor %i: Ambient Temp: %f -- Thermocouple %i temperature: %f -- Potential: %f" % (source.getSerialNum(), ambient, e.index, e.temperature, e.potential))
-    log.add_row(environment=e.temperature, beans="-", crack="-")
+        def TemperatureSensorError(e):
+            try:
+                source = e.device
+                if source.isAttached():
+                    print("TemperatureSensor %i: Phidget Error %i: %s" % (source.getSerialNum(), e.eCode, e.description))
+            except PhidgetException as e:
+                print("Phidget Exception %i: %s" % (e.code, e.details))
 
-#Main Program Code
-try:
-	#logging example, uncomment to generate a log file
-    #temperatureSensor.enableLogging(PhidgetLogLevel.PHIDGET_LOG_VERBOSE, "phidgetlog.log")
+        def TemperatureSensorTemperatureChanged(e):
+            try:
+                ambient = temperatureSensor.getAmbientTemperature()
+            except PhidgetException as e:
+                print("Phidget Exception %i: %s" % (e.code, e.details))
+                ambient = 0.00
 
-    temperatureSensor.setOnAttachHandler(TemperatureSensorAttached)
-    temperatureSensor.setOnDetachHandler(TemperatureSensorDetached)
-    temperatureSensor.setOnErrorhandler(TemperatureSensorError)
-    temperatureSensor.setOnTemperatureChangeHandler(TemperatureSensorTemperatureChanged)
-except PhidgetException as e:
-    print("Phidget Exception %i: %s" % (e.code, e.details))
-    print("Exiting....")
-    exit(1)
+            source = e.device
+            # print("TemperatureSensor %i: Ambient Temp: %f -- Thermocouple %i temperature: %f -- Potential: %f" % (source.getSerialNum(), ambient, e.index, e.temperature, e.potential))
+            if e.index == 0:
+                #print("Temperature: %f" % (e.temperature))
+                self.logger.add_row(e.temperature,"-","-")
 
-print("Opening phidget object....")
+        #Main Program Code
+        try:
+        	#logging example, uncomment to generate a log file
+            #temperatureSensor.enableLogging(PhidgetLogLevel.PHIDGET_LOG_VERBOSE, "phidgetlog.log")
 
-try:
-    temperatureSensor.openPhidget()
-except PhidgetException as e:
-    print("Phidget Exception %i: %s" % (e.code, e.details))
-    print("Exiting....")
-    exit(1)
+            temperatureSensor.setOnAttachHandler(TemperatureSensorAttached)
+            temperatureSensor.setOnDetachHandler(TemperatureSensorDetached)
+            temperatureSensor.setOnErrorhandler(TemperatureSensorError)
+            temperatureSensor.setOnTemperatureChangeHandler(TemperatureSensorTemperatureChanged)
+        except PhidgetException as e:
+            print("Phidget Exception %i: %s" % (e.code, e.details))
+            print("Exiting....")
+            exit(1)
 
-print("Waiting for attach....")
+        print("Opening phidget object....")
 
-try:
-    temperatureSensor.waitForAttach(10000)
-except PhidgetException as e:
-    print("Phidget Exception %i: %s" % (e.code, e.details))
-    try:
-        temperatureSensor.closePhidget()
-    except PhidgetException as e:
-        print("Phidget Exception %i: %s" % (e.code, e.details))
-        print("Exiting....")
-        exit(1)
-    print("Exiting....")
-    exit(1)
-else:
-    DisplayDeviceInfo()
+        try:
+            temperatureSensor.openPhidget()
+        except PhidgetException as e:
+            print("Phidget Exception %i: %s" % (e.code, e.details))
+            print("Exiting....")
+            exit(1)
 
-print("Setting Thermocouple type...")
-temperatureSensor.setThermocoupleType(0, ThermocoupleType.PHIDGET_TEMPERATURE_SENSOR_K_TYPE)
+        print("Waiting for attach....")
 
-print("Setting sensitivity of the thermocouple....")
-temperatureSensor.setTemperatureChangeTrigger(0, 0.10)
-sleep(5) #sleep for 5 seconds
-print("Sensitivity of thermocouple index 0 is now %f" % (temperatureSensor.getTemperatureChangeTrigger(0)))
+        try:
+            temperatureSensor.waitForAttach(10000)
+        except PhidgetException as e:
+            print("Phidget Exception %i: %s" % (e.code, e.details))
+            try:
+                temperatureSensor.closePhidget()
+            except PhidgetException as e:
+                print("Phidget Exception %i: %s" % (e.code, e.details))
+                print("Exiting....")
+                exit(1)
+            print("Exiting....")
+            exit(1)
+        else:
+            DisplayDeviceInfo()
 
-print("Press Enter to quit....")
+        print("Setting Thermocouple type...")
+        temperatureSensor.setThermocoupleType(0, ThermocoupleType.PHIDGET_TEMPERATURE_SENSOR_K_TYPE)
 
-chr = sys.stdin.read(1)
+        print("Setting sensitivity of the thermocouple....")
+        temperatureSensor.setTemperatureChangeTrigger(0, 0.10)
+        sleep(5) #sleep for 5 seconds
+        print("Sensitivity of thermocouple index 0 is now %f" % (temperatureSensor.getTemperatureChangeTrigger(0)))
 
-print("Closing...")
+        print("Press Enter to quit....")
 
-try:
-    temperatureSensor.closePhidget()
-except PhidgetException as e:
-    print("Phidget Exception %i: %s" % (e.code, e.details))
-    print("Exiting....")
-    exit(1)
+        #chr = sys.stdin.read(1)
+        while True:
+            #print("sensing")
+            a = 1
 
-print("Done.")
-exit(0)
+        #print("Closing...")
+
+        try:
+            temperatureSensor.closePhidget()
+        except PhidgetException as e:
+            print("Phidget Exception %i: %s" % (e.code, e.details))
+            print("Exiting....")
+            exit(1)
+
+        print("Done.")
+        exit(0)
